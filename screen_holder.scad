@@ -28,13 +28,13 @@ stand_side_angle = 90.0 - 22.5; // reduced from a 90 degree right-triangle stand
 stand_width = 8.0;            // width of each side stand [mm]
 stand_inset = 1.0;            // stand inset from left/right panel edges [mm]
 stand_attach_h = panel_h * 0.75; // vertical height attached to panel back [mm]
-stand_flat_h = 22.0;          // height of the flat rear contact surface [mm]
 stand_depth = stand_attach_h * tan(screen_tilt_angle);
 stand_foot_y = stand_depth / tan(stand_side_angle);
 stand_plate_depth = 150.0;    // solid angled plate extension out from panel back [mm]
 stand_plate_t = 10.0;         // solid angled plate thickness [mm]
 stand_plate_low_y = -8.0;     // low end extends past the holder edge in Y [mm]
 stand_plate_y = stand_plate_depth / tan(stand_side_angle);
+show_change_markers = true;   // preview markers for the side-stand corners being adjusted
 
 window_cx = window_x + window_w / 2;
 window_cy = window_y + window_h / 2;
@@ -87,22 +87,19 @@ module side_stand(x0) {
 
     polyhedron(
         points = [
-            [x0, 0, panel_t],
+            [x0, stand_plate_low_y, -eps],
             [x0, stand_attach_h, panel_t],
-            [x0, stand_foot_y + stand_flat_h, panel_t + stand_depth],
             [x0, stand_foot_y, panel_t + stand_depth],
-            [x1, 0, panel_t],
+            [x1, stand_plate_low_y, -eps],
             [x1, stand_attach_h, panel_t],
-            [x1, stand_foot_y + stand_flat_h, panel_t + stand_depth],
             [x1, stand_foot_y, panel_t + stand_depth]
         ],
         faces = [
-            [0, 3, 2, 1],
-            [4, 5, 6, 7],
-            [0, 4, 7, 3],
-            [3, 7, 6, 2],
-            [2, 6, 5, 1],
-            [1, 5, 4, 0]
+            [0, 2, 1],
+            [3, 4, 5],
+            [0, 3, 5, 2],
+            [2, 5, 4, 1],
+            [1, 4, 3, 0]
         ]
     );
 }
@@ -130,10 +127,32 @@ module stand_plate() {
     );
 }
 
+module change_marker(x0) {
+    x1 = x0 + stand_width;
+
+    for (x = [x0, x1]) {
+        color("magenta")
+            translate([x, stand_foot_y, panel_t + stand_depth])
+                sphere(r = 3);
+
+        color("magenta")
+            translate([x, stand_foot_y - 18, panel_t + stand_depth])
+                rotate([-90, 0, 0])
+                    cylinder(h = 15, r1 = 1.2, r2 = 0.2);
+    }
+}
+
 union() {
     panel_body();
 
     stand_plate();
-    side_stand(stand_inset);
-    side_stand(panel_w - stand_inset - stand_width);
+    color("red") {
+        side_stand(stand_inset);
+        side_stand(panel_w - stand_inset - stand_width);
+    }
+
+    if (show_change_markers) {
+        change_marker(stand_inset);
+        change_marker(panel_w - stand_inset - stand_width);
+    }
 }
