@@ -34,7 +34,17 @@ stand_plate_depth = 150.0;    // solid angled plate extension out from panel bac
 stand_plate_t = 10.0;         // solid angled plate thickness [mm]
 stand_plate_low_y = -8.0;     // low end extends past the holder edge in Y [mm]
 stand_plate_y = stand_plate_depth / tan(stand_side_angle);
-show_change_markers = true;   // preview markers for the side-stand corners being adjusted
+stand_plate_rise = panel_t + stand_plate_depth;
+stand_plate_len = sqrt(stand_plate_y * stand_plate_y + stand_plate_rise * stand_plate_rise);
+stand_plate_slope = stand_plate_rise / stand_plate_y;
+side_stand_plate_z = (stand_attach_h - stand_plate_t + stand_plate_slope * panel_t)
+    / (stand_plate_slope + 1 / stand_plate_slope);
+side_stand_plate_y = stand_plate_t + side_stand_plate_z / stand_plate_slope;
+stop_gap = 40.0;              // room between side-stand tip and stop along plate [mm]
+stop_h = 100.0;               // stop height upward from the plate [mm]
+stop_t = 5.0;                 // stop thickness along the plate [mm]
+stop_y = side_stand_plate_y + stop_gap * stand_plate_y / stand_plate_len;
+show_change_markers = true;   // preview markers for the last edited feature
 
 window_cx = window_x + window_w / 2;
 window_cy = window_y + window_h / 2;
@@ -87,12 +97,12 @@ module side_stand(x0) {
 
     polyhedron(
         points = [
-            [x0, stand_plate_low_y, -eps],
+            [x0, stand_plate_t, -eps],
             [x0, stand_attach_h, panel_t],
-            [x0, stand_foot_y, panel_t + stand_depth],
-            [x1, stand_plate_low_y, -eps],
+            [x0, side_stand_plate_y, side_stand_plate_z],
+            [x1, stand_plate_t, -eps],
             [x1, stand_attach_h, panel_t],
-            [x1, stand_foot_y, panel_t + stand_depth]
+            [x1, side_stand_plate_y, side_stand_plate_z]
         ],
         faces = [
             [0, 2, 1],
@@ -127,16 +137,58 @@ module stand_plate() {
     );
 }
 
-module change_marker(x0) {
-    x1 = x0 + stand_width;
+function stand_plate_top_z(y) =
+    (y - stand_plate_t) * (panel_t + stand_plate_depth) / stand_plate_y;
 
-    for (x = [x0, x1]) {
+module plate_stop() {
+    normal_y = stand_plate_rise / stand_plate_len;
+    normal_z = -stand_plate_y / stand_plate_len;
+    z0 = stand_plate_top_z(stop_y);
+    z1 = stand_plate_top_z(stop_y + stop_t);
+
+    polyhedron(
+        points = [
+            [0, stop_y, z0],
+            [0, stop_y + stop_t, z1],
+            [0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+            [0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
+            [panel_w, stop_y, z0],
+            [panel_w, stop_y + stop_t, z1],
+            [panel_w, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+            [panel_w, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
+        ],
+        faces = [
+            [0, 3, 2, 1],
+            [4, 5, 6, 7],
+            [0, 4, 7, 3],
+            [3, 7, 6, 2],
+            [2, 6, 5, 1],
+            [1, 5, 4, 0]
+        ]
+    );
+}
+
+module change_marker() {
+    for (x = [
+        stand_inset,
+        stand_inset + stand_width,
+        panel_w - stand_inset - stand_width,
+        panel_w - stand_inset
+    ]) {
         color("magenta")
-            translate([x, stand_foot_y, panel_t + stand_depth])
+            translate([
+                x,
+                side_stand_plate_y,
+                side_stand_plate_z
+            ])
                 sphere(r = 3);
 
         color("magenta")
-            translate([x, stand_foot_y - 18, panel_t + stand_depth])
+            translate([
+                x,
+                side_stand_plate_y - 18,
+                side_stand_plate_z
+            ])
                 rotate([-90, 0, 0])
                     cylinder(h = 15, r1 = 1.2, r2 = 0.2);
     }
@@ -146,13 +198,14 @@ union() {
     panel_body();
 
     stand_plate();
+    color("blue")
+        plate_stop();
+
     color("red") {
         side_stand(stand_inset);
         side_stand(panel_w - stand_inset - stand_width);
     }
 
-    if (show_change_markers) {
-        change_marker(stand_inset);
-        change_marker(panel_w - stand_inset - stand_width);
-    }
+    if (show_change_markers)
+        change_marker();
 }
