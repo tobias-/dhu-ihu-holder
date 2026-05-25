@@ -35,15 +35,17 @@ stand_plate_t = 10.0;         // solid angled plate thickness [mm]
 stand_plate_low_y = -8.0;     // low end extends past the holder edge in Y [mm]
 stand_plate_y = stand_plate_depth / tan(stand_side_angle);
 stand_plate_rise = panel_t + stand_plate_depth;
-stand_plate_len = sqrt(stand_plate_y * stand_plate_y + stand_plate_rise * stand_plate_rise);
-stand_plate_slope = stand_plate_rise / stand_plate_y;
-side_stand_plate_z = (stand_attach_h - stand_plate_t + stand_plate_slope * panel_t)
+stand_plate_top_y0 = stand_plate_low_y + stand_plate_t;
+stand_plate_run = stand_plate_y - stand_plate_low_y;
+stand_plate_len = sqrt(stand_plate_run * stand_plate_run + stand_plate_rise * stand_plate_rise);
+stand_plate_slope = stand_plate_rise / stand_plate_run;
+side_stand_plate_z = (stand_attach_h - stand_plate_top_y0 + stand_plate_slope * panel_t)
     / (stand_plate_slope + 1 / stand_plate_slope);
-side_stand_plate_y = stand_plate_t + side_stand_plate_z / stand_plate_slope;
+side_stand_plate_y = stand_plate_top_y0 + side_stand_plate_z / stand_plate_slope;
 stop_gap = 40.0;              // room between side-stand tip and stop along plate [mm]
 stop_h = 100.0;               // stop height upward from the plate [mm]
 stop_t = 5.0;                 // stop thickness along the plate [mm]
-stop_y = side_stand_plate_y + stop_gap * stand_plate_y / stand_plate_len;
+stop_y = side_stand_plate_y + stop_gap * stand_plate_run / stand_plate_len;
 show_change_markers = true;   // preview markers for the last edited feature
 
 window_cx = window_x + window_w / 2;
@@ -97,10 +99,10 @@ module side_stand(x0) {
 
     polyhedron(
         points = [
-            [x0, stand_plate_t, -eps],
+            [x0, stand_plate_top_y0, -eps],
             [x0, stand_attach_h, panel_t],
             [x0, side_stand_plate_y, side_stand_plate_z],
-            [x1, stand_plate_t, -eps],
+            [x1, stand_plate_top_y0, -eps],
             [x1, stand_attach_h, panel_t],
             [x1, side_stand_plate_y, side_stand_plate_z]
         ],
@@ -118,11 +120,11 @@ module stand_plate() {
     polyhedron(
         points = [
             [0, stand_plate_low_y, -eps],
-            [0, stand_plate_t, -eps],
+            [0, stand_plate_top_y0, -eps],
             [0, stand_plate_y + stand_plate_t, panel_t + stand_plate_depth],
             [0, stand_plate_y, panel_t + stand_plate_depth],
             [panel_w, stand_plate_low_y, -eps],
-            [panel_w, stand_plate_t, -eps],
+            [panel_w, stand_plate_top_y0, -eps],
             [panel_w, stand_plate_y + stand_plate_t, panel_t + stand_plate_depth],
             [panel_w, stand_plate_y, panel_t + stand_plate_depth]
         ],
@@ -138,11 +140,11 @@ module stand_plate() {
 }
 
 function stand_plate_top_z(y) =
-    (y - stand_plate_t) * (panel_t + stand_plate_depth) / stand_plate_y;
+    (y - stand_plate_top_y0) * stand_plate_slope;
 
 module plate_stop() {
     normal_y = stand_plate_rise / stand_plate_len;
-    normal_z = -stand_plate_y / stand_plate_len;
+    normal_z = -stand_plate_run / stand_plate_len;
     z0 = stand_plate_top_z(stop_y);
     z1 = stand_plate_top_z(stop_y + stop_t);
 
