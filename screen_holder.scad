@@ -1,30 +1,40 @@
 // ============================================================
 //  Screen Holder Panel
-//  Flat 3D-printable panel with a screen window, one round
-//  mounting hole, and four square holes around the window.
+//  Holder replica panel with screen stand geometry.
 // ============================================================
 
 // ---------- Parameters ----------
 
-panel_w = 170.0;      // outer panel width [mm]
-panel_h = 210.0;      // outer panel height [mm]
+panel_w = 200.0;      // outer panel width [mm]
+panel_h = 265.0;      // outer panel height [mm]
 show_full_holder = true; // include stand, stop, and braces
 panel_t_full = 10.0;  // full holder panel thickness [mm]
 panel_t_plate_only = 3.0; // plate-only panel thickness [mm]
 panel_t = show_full_holder ? panel_t_full : panel_t_plate_only;
 
-window_w = 150.0;     // screen opening width [mm]
-window_h = 120.0;     // screen opening height [mm]
-window_x = (panel_w - window_w) / 2; // window left edge from panel left [mm]
-window_y = (panel_h - window_h) / 2; // window top edge from panel top [mm]
+show_labels = true;
+label_size = 6.0;
+label_depth = 0.35;
+label_gap = 1.5;          // labels hover outside the plate [mm]
+label_color = "red";      // OpenSCAD preview color
 
-round_hole_d = 5.0;   // round mounting hole diameter [mm]
-round_hole_x = panel_w - 72.5; // round hole centre from panel left [mm]
-round_hole_y = 38.0;  // round hole centre from panel top [mm]
+window_x = 15.0;      // screen opening left edge from panel left [mm]
+window_y = 58.5;      // screen opening top edge from panel top [mm]
+window_w = 170.0;     // screen opening width [mm]
+window_h = 125.0;     // screen opening height [mm]
 
-square_hole_size = 11.5;  // square hole side length [mm]
-square_spacing_x = 135.0; // square hole centre-to-centre X spacing [mm]
-square_spacing_y = 149.0; // square hole centre-to-centre Y spacing [mm]
+// [label, x, y-from-top, diameter]
+holder_holes = [
+    ["H1", 30.0,   20.0,  8.0],
+    ["H2", 170.0,  20.0,  8.0],
+    ["H3", 72.5,   37.0,  6.0],
+    ["H4", 48.0,   45.0,  7.0],
+    ["H5", 152.0,  45.0,  7.0],
+    ["H6", 48.0,  198.5,  7.0],
+    ["H7", 152.0, 198.5,  7.0],
+    ["H8", 48.5,  217.0,  7.0],
+    ["H9", 145.5, 217.0,  7.0]
+];
 
 screen_tilt_angle = 25.0;     // approximate backward screen tilt from vertical [deg]
 stand_side_angle = 90.0 - 22.5; // reduced from a 90 degree right-triangle stand [deg]
@@ -57,9 +67,6 @@ blue_cutout_h = 30.0;        // notch height along the stop direction [mm]
 blue_cutout_offset = (stop_h - blue_cutout_h) / 2;
 blue_cutout_start_y = blue_rect_end_y - blue_cutout_depth * stand_plate_run / stand_plate_len;
 
-window_cx = window_x + window_w / 2;
-window_cy = window_y + window_h / 2;
-
 $fn = 64;
 eps = 0.1;
 
@@ -67,15 +74,24 @@ eps = 0.1;
 
 function y_from_top(y) = panel_h - y;
 function rect_y_from_top(y, h) = panel_h - y - h;
+function mirrored_x(x) = panel_w - x;
+function mirrored_rect_x(x, w) = panel_w - x - w;
+function hole_label(h) = h[0];
+function hole_x(h) = h[1];
+function hole_y(h) = h[2];
+function hole_d(h) = h[3];
 
-// ---------- Derived hole centres ----------
-
-square_centres = [
-    [window_cx - square_spacing_x / 2, window_cy - square_spacing_y / 2],
-    [window_cx + square_spacing_x / 2, window_cy - square_spacing_y / 2],
-    [window_cx - square_spacing_x / 2, window_cy + square_spacing_y / 2],
-    [window_cx + square_spacing_x / 2, window_cy + square_spacing_y / 2]
-];
+function label_dx(label) =
+    label == "H1" ? 8 :
+    label == "H2" ? -16 :
+    label == "H3" ? 8 :
+    label == "H4" ? 8 :
+    label == "H5" ? -16 :
+    label == "H6" ? 8 :
+    label == "H7" ? -16 :
+    label == "H8" ? 8 :
+    label == "H9" ? -16 :
+    8;
 
 // ---------- Main body ----------
 
@@ -84,23 +100,40 @@ module panel_body() {
         cube([panel_w, panel_h, panel_t]);
 
         // Screen window, positioned from the top-left panel corner.
-        translate([window_x, rect_y_from_top(window_y, window_h), -eps])
+        translate([mirrored_rect_x(window_x, window_w), rect_y_from_top(window_y, window_h), -eps])
             cube([window_w, window_h, panel_t + 2 * eps]);
 
-        // Round mounting hole, matching the drill jig's 5 mm hole.
-        translate([round_hole_x, y_from_top(round_hole_y), -eps])
-            cylinder(d = round_hole_d, h = panel_t + 2 * eps);
-
-        // Four square holes centred around the window centre.
-        for (centre = square_centres) {
-            translate([
-                centre[0] - square_hole_size / 2,
-                rect_y_from_top(centre[1] - square_hole_size / 2, square_hole_size),
-                -eps
-            ])
-                cube([square_hole_size, square_hole_size, panel_t + 2 * eps]);
+        // Holder replica mounting holes, positioned from the top-left panel corner.
+        for (hole = holder_holes) {
+            translate([mirrored_x(hole_x(hole)), y_from_top(hole_y(hole)), -eps])
+                cylinder(d = hole_d(hole), h = panel_t + 2 * eps);
         }
     }
+}
+
+module label_from_top_left(txt, x, y) {
+    color(label_color)
+        translate([x, y_from_top(y), -label_gap])
+            rotate([180, 0, 180])
+                linear_extrude(height = label_depth)
+                    text(
+                        txt,
+                        size = label_size,
+                        halign = "center",
+                        valign = "center"
+                    );
+}
+
+module holder_labels() {
+    for (hole = holder_holes) {
+        label_from_top_left(
+            hole_label(hole),
+            mirrored_x(hole_x(hole) + label_dx(hole_label(hole))),
+            hole_y(hole)
+        );
+    }
+
+    label_from_top_left("W1", mirrored_x(window_x + 10), window_y + 8);
 }
 
 module side_stand(x0) {
@@ -223,6 +256,9 @@ module blue_rectangle(x0) {
 union() {
     color("yellow")
         panel_body();
+
+    if (show_labels)
+        holder_labels();
 
     if (show_full_holder) {
         color("green")
