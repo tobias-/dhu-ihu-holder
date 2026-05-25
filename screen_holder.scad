@@ -8,7 +8,10 @@
 
 panel_w = 170.0;      // outer panel width [mm]
 panel_h = 210.0;      // outer panel height [mm]
-panel_t = 10.0;       // panel thickness [mm]
+show_full_holder = true; // include stand, stop, and braces
+panel_t_full = 10.0;  // full holder panel thickness [mm]
+panel_t_plate_only = 3.0; // plate-only panel thickness [mm]
+panel_t = show_full_holder ? panel_t_full : panel_t_plate_only;
 
 window_w = 150.0;     // screen opening width [mm]
 window_h = 120.0;     // screen opening height [mm]
@@ -49,11 +52,10 @@ stop_y = stand_plate_y + stand_plate_t - stop_t;
 blue_rect_gap = 45.0;         // clearance before the stop along the plate [mm]
 blue_rect_start_y = side_stand_plate_y;
 blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
-blue_cutout_depth = 20.0;    // notch depth from stop-side end along the plate [mm]
+blue_cutout_depth = 10.0;    // notch depth from stop-side end along the plate [mm]
 blue_cutout_h = 30.0;        // notch height along the stop direction [mm]
 blue_cutout_offset = (stop_h - blue_cutout_h) / 2;
 blue_cutout_start_y = blue_rect_end_y - blue_cutout_depth * stand_plate_run / stand_plate_len;
-show_change_markers = true;   // preview markers for the last edited feature
 
 window_cx = window_x + window_w / 2;
 window_cy = window_y + window_h / 2;
@@ -218,49 +220,23 @@ module blue_rectangle(x0) {
     }
 }
 
-module change_marker() {
-    for (x = [
-        stand_inset,
-        stand_inset + stand_width,
-        panel_w - stand_inset - stand_width,
-        panel_w - stand_inset
-    ]) {
-        color("magenta")
-            translate([
-                x,
-                side_stand_plate_y,
-                side_stand_plate_z
-            ])
-                sphere(r = 3);
-
-        color("magenta")
-            translate([
-                x,
-                side_stand_plate_y - 18,
-                side_stand_plate_z
-            ])
-                rotate([-90, 0, 0])
-                    cylinder(h = 15, r1 = 1.2, r2 = 0.2);
-    }
-}
-
 union() {
-    panel_body();
+    color("yellow")
+        panel_body();
 
-    color("green")
-        stand_plate();
-    color("lightblue") {
-        blue_rectangle(stand_inset);
-        blue_rectangle(panel_w - stand_inset - stand_width);
+    if (show_full_holder) {
+        color("green")
+            stand_plate();
+        color("lightblue") {
+            blue_rectangle(stand_inset);
+            blue_rectangle(panel_w - stand_inset - stand_width);
+        }
+        color("blue")
+            plate_stop();
+
+        color("red") {
+            side_stand(stand_inset);
+            side_stand(panel_w - stand_inset - stand_width);
+        }
     }
-    color("blue")
-        plate_stop();
-
-    color("red") {
-        side_stand(stand_inset);
-        side_stand(panel_w - stand_inset - stand_width);
-    }
-
-    if (show_change_markers)
-        change_marker();
 }
