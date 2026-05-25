@@ -45,7 +45,14 @@ side_stand_plate_y = stand_plate_top_y0 + side_stand_plate_z / stand_plate_slope
 stop_gap = 40.0;              // room between side-stand tip and stop along plate [mm]
 stop_h = 100.0;               // stop height upward from the plate [mm]
 stop_t = 5.0;                 // stop thickness along the plate [mm]
-stop_y = side_stand_plate_y + stop_gap * stand_plate_run / stand_plate_len;
+stop_y = stand_plate_y + stand_plate_t - stop_t;
+blue_rect_gap = 45.0;         // clearance before the stop along the plate [mm]
+blue_rect_start_y = side_stand_plate_y;
+blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
+blue_cutout_depth = 20.0;    // notch depth from stop-side end along the plate [mm]
+blue_cutout_h = 30.0;        // notch height along the stop direction [mm]
+blue_cutout_offset = (stop_h - blue_cutout_h) / 2;
+blue_cutout_start_y = blue_rect_end_y - blue_cutout_depth * stand_plate_run / stand_plate_len;
 show_change_markers = true;   // preview markers for the last edited feature
 
 window_cx = window_x + window_w / 2;
@@ -170,6 +177,47 @@ module plate_stop() {
     );
 }
 
+module sloped_wall(x0, x1, y0, y1, h, base_offset = 0) {
+    normal_y = stand_plate_rise / stand_plate_len;
+    normal_z = -stand_plate_run / stand_plate_len;
+    z0 = stand_plate_top_z(y0);
+    z1 = stand_plate_top_z(y1);
+
+    polyhedron(
+        points = [
+            [x0, y0 + normal_y * base_offset, z0 + normal_z * base_offset],
+            [x0, y1 + normal_y * base_offset, z1 + normal_z * base_offset],
+            [x0, y1 + normal_y * (base_offset + h), z1 + normal_z * (base_offset + h)],
+            [x0, y0 + normal_y * (base_offset + h), z0 + normal_z * (base_offset + h)],
+            [x1, y0 + normal_y * base_offset, z0 + normal_z * base_offset],
+            [x1, y1 + normal_y * base_offset, z1 + normal_z * base_offset],
+            [x1, y1 + normal_y * (base_offset + h), z1 + normal_z * (base_offset + h)],
+            [x1, y0 + normal_y * (base_offset + h), z0 + normal_z * (base_offset + h)]
+        ],
+        faces = [
+            [0, 3, 2, 1],
+            [4, 5, 6, 7],
+            [0, 4, 7, 3],
+            [3, 7, 6, 2],
+            [2, 6, 5, 1],
+            [1, 5, 4, 0]
+        ]
+    );
+}
+
+module blue_rectangle(x0) {
+    x1 = x0 + stand_width;
+
+    difference() {
+        sloped_wall(x0, x1, blue_rect_start_y, blue_rect_end_y, stop_h);
+        sloped_wall(
+            x0 - eps, x1 + eps,
+            blue_cutout_start_y, blue_rect_end_y + eps,
+            blue_cutout_h + 2 * eps, blue_cutout_offset - eps
+        );
+    }
+}
+
 module change_marker() {
     for (x = [
         stand_inset,
@@ -199,7 +247,12 @@ module change_marker() {
 union() {
     panel_body();
 
-    stand_plate();
+    color("green")
+        stand_plate();
+    color("lightblue") {
+        blue_rectangle(stand_inset);
+        blue_rectangle(panel_w - stand_inset - stand_width);
+    }
     color("blue")
         plate_stop();
 
