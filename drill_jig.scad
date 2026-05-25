@@ -13,7 +13,7 @@ clearance = 0.2;   // radial clearance added to guide hole [mm]
 hole_x    = 37.0;  // distance from flange-A (the "left" wall) [mm]
 hole_y    = 72.5;  // distance from flange-B (the "bottom" wall) [mm]
 
-plate_h   =  8;    // total height of the guide plate [mm]
+plate_h   =  3;    // total height of the guide plate [mm]
 flange_h  =  5;    // depth the flanges extend BELOW the plate (grips sheet edge) [mm]
 flange_w  =  4;    // wall thickness of each flange [mm]
 
