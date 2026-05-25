@@ -6,8 +6,10 @@
 // ---------- Parameters ----------
 
 panel_w = 200.0;      // outer panel width [mm]
-panel_h = 265.0;      // outer panel height [mm]
 show_full_holder = true; // include stand, stop, and braces
+panel_h_full = 265.0; // full holder panel height [mm]
+panel_h_plate_only = 256.0; // plate-only panel height [mm]
+panel_h = show_full_holder ? panel_h_full : panel_h_plate_only;
 panel_t_full = 10.0;  // full holder panel thickness [mm]
 panel_t_plate_only = 3.0; // plate-only panel thickness [mm]
 panel_t = show_full_holder ? panel_t_full : panel_t_plate_only;
@@ -59,6 +61,10 @@ stop_gap = 40.0;              // room between side-stand tip and stop along plat
 stop_h = 100.0;               // stop height upward from the plate [mm]
 stop_t = 5.0;                 // stop thickness along the plate [mm]
 stop_y = stand_plate_y + stand_plate_t - stop_t;
+stop_label_text = "II";       // back-of-stop roman numeral
+stop_label_size = stop_h * 0.3; // text height, about 30% of stop height [mm]
+stop_label_depth = 1.0;       // raised text depth [mm]
+stop_label_font = "Liberation Serif:style=Bold";
 blue_rect_gap = 45.0;         // clearance before the stop along the plate [mm]
 blue_rect_start_y = side_stand_plate_y;
 blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
@@ -212,6 +218,30 @@ module plate_stop() {
     );
 }
 
+module stop_back_label() {
+    normal_y = stand_plate_rise / stand_plate_len;
+    normal_z = -stand_plate_run / stand_plate_len;
+    z1 = stand_plate_top_z(stop_y + stop_t);
+    label_angle = atan2(normal_z, normal_y);
+
+    color("white")
+        translate([
+            panel_w / 2,
+            stop_y + stop_t + normal_y * stop_h / 2,
+            z1 + normal_z * stop_h / 2
+        ])
+            rotate([label_angle, 0, 0])
+                translate([0, 0, -eps])
+                    linear_extrude(height = stop_label_depth + eps)
+                        text(
+                            stop_label_text,
+                            size = stop_label_size,
+                            font = stop_label_font,
+                            halign = "center",
+                            valign = "center"
+                        );
+}
+
 module sloped_wall(x0, x1, y0, y1, h, base_offset = 0) {
     normal_y = stand_plate_rise / stand_plate_len;
     normal_z = -stand_plate_run / stand_plate_len;
@@ -269,6 +299,7 @@ union() {
         }
         color("blue")
             plate_stop();
+        stop_back_label();
 
         color("red") {
             side_stand(stand_inset);
