@@ -5,7 +5,7 @@
 
 // ---------- Parameters ----------
 
-panel_w = 200.0;      // outer panel width [mm]
+panel_w = 205.0;      // outer panel width [mm]
 show_full_holder = true; // include stand, stop, and braces
 panel_h_full = 265.0; // full holder panel height [mm]
 panel_h_plate_only = 256.0; // plate-only panel height [mm]
@@ -28,14 +28,14 @@ window_h = 125.0;     // screen opening height [mm]
 // [label, x, y-from-top, diameter]
 holder_holes = [
     ["H1", 30.0,   20.0,  8.0],
-    ["H2", 170.0,  20.0,  8.0],
+    ["H2", 171.5,  20.0,  8.0],
     ["H3", 72.5,   37.0,  6.0],
     ["H4", 48.0,   45.0,  7.0],
     ["H5", 152.0,  45.0,  7.0],
     ["H6", 48.0,  198.5,  7.0],
-    ["H7", 152.0, 198.5,  7.0],
+    ["H7", 157.0, 198.5,  7.0],
     ["H8", 48.5,  217.0,  7.0],
-    ["H9", 145.5, 217.0,  7.0]
+    ["H9", 150.5, 217.0,  7.0]
 ];
 
 screen_tilt_angle = 25.0;     // approximate backward screen tilt from vertical [deg]
