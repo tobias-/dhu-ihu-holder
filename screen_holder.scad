@@ -58,14 +58,17 @@ side_stand_plate_z = (stand_attach_h - stand_plate_top_y0 + stand_plate_slope * 
     / (stand_plate_slope + 1 / stand_plate_slope);
 side_stand_plate_y = stand_plate_top_y0 + side_stand_plate_z / stand_plate_slope;
 stop_gap = 40.0;              // room between side-stand tip and stop along plate [mm]
-stop_h = 100.0;               // stop height upward from the plate [mm]
+tunnel_h = 150.0;             // clear tunnel height target [mm]
+stop_h = tunnel_h;             // stop height upward from the plate [mm]
 stop_t = 5.0;                 // stop thickness along the plate [mm]
 stop_y = stand_plate_y + stand_plate_t - stop_t;
 stop_label_text = "II";       // back-of-stop roman numeral
 stop_label_size = stop_h * 0.3; // text height, about 30% of stop height [mm]
 stop_label_depth = 1.0;       // raised text depth [mm]
 stop_label_font = "Liberation Serif:style=Bold";
-blue_rect_gap = 45.0;         // clearance before the stop along the plate [mm]
+tunnel_w = 45.0;              // tunnel width along the sloped plate [mm]
+tunnel_roof_t = 8.0;           // inverted-U top bridge thickness [mm]
+blue_rect_gap = tunnel_w;      // clearance before the stop along the plate [mm]
 blue_rect_start_y = side_stand_plate_y;
 blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
 blue_cutout_depth = 10.0;    // notch depth from stop-side end along the plate [mm]
@@ -190,7 +193,8 @@ module stand_plate() {
 function stand_plate_top_z(y) =
     (y - stand_plate_top_y0) * stand_plate_slope;
 
-module plate_stop() {
+module plate_stop_bar(x0) {
+    x1 = x0 + stand_width;
     normal_y = stand_plate_rise / stand_plate_len;
     normal_z = -stand_plate_run / stand_plate_len;
     z0 = stand_plate_top_z(stop_y);
@@ -198,14 +202,14 @@ module plate_stop() {
 
     polyhedron(
         points = [
-            [0, stop_y, z0],
-            [0, stop_y + stop_t, z1],
-            [0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-            [0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
-            [panel_w, stop_y, z0],
-            [panel_w, stop_y + stop_t, z1],
-            [panel_w, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-            [panel_w, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
+            [x0, stop_y, z0],
+            [x0, stop_y + stop_t, z1],
+            [x0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+            [x0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
+            [x1, stop_y, z0],
+            [x1, stop_y + stop_t, z1],
+            [x1, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+            [x1, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
         ],
         faces = [
             [0, 3, 2, 1],
@@ -283,6 +287,16 @@ module blue_rectangle(x0) {
     }
 }
 
+module tunnel_roof(x0) {
+    x1 = x0 + stand_width;
+
+    sloped_wall(
+        x0, x1,
+        blue_rect_end_y - eps, stop_y + stop_t + eps,
+        tunnel_roof_t + 2 * eps, stop_h - tunnel_roof_t - eps
+    );
+}
+
 union() {
     color("yellow")
         panel_body();
@@ -296,10 +310,13 @@ union() {
         color("lightblue") {
             blue_rectangle(stand_inset);
             blue_rectangle(panel_w - stand_inset - stand_width);
+            tunnel_roof(stand_inset);
+            tunnel_roof(panel_w - stand_inset - stand_width);
         }
-        color("blue")
-            plate_stop();
-        stop_back_label();
+        color("blue") {
+            plate_stop_bar(stand_inset);
+            plate_stop_bar(panel_w - stand_inset - stand_width);
+        }
 
         color("red") {
             side_stand(stand_inset);
