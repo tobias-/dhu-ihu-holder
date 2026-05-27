@@ -11,7 +11,7 @@ panel_h_full = 265.0; // full holder panel height [mm]
 panel_h_plate_only = 256.0; // plate-only panel height [mm]
 panel_h = show_full_holder ? panel_h_full : panel_h_plate_only;
 panel_t_full = 10.0;  // full holder panel thickness [mm]
-panel_t_plate_only = 3.0; // plate-only panel thickness [mm]
+panel_t_plate_only = 1.0; // plate-only panel thickness [mm]
 panel_t = show_full_holder ? panel_t_full : panel_t_plate_only;
 
 show_labels = true;
