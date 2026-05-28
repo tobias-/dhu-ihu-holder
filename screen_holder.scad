@@ -65,24 +65,36 @@ side_stand_plate_y = stand_plate_top_y0 + side_stand_plate_z / stand_plate_slope
 stop_gap = 40.0;              // room between side-stand tip and stop along plate [mm]
 tunnel_h = 150.0;             // clear tunnel height target [mm]
 stop_h = tunnel_h;             // stop height upward from the plate [mm]
-stop_t = 5.0;                 // stop thickness along the plate [mm]
-stop_y = stand_plate_y + stand_plate_t - stop_t;
 inside_label_text = "III";      // roman numeral on the inside of the yellow plate
 inside_label_y = 20.0;          // label center from top edge of the yellow plate [mm]
 inside_label_size = 20.0;       // text height [mm]
 inside_label_depth = 1.0;       // raised text depth [mm]
 inside_label_font = "Liberation Serif:style=Bold";
-tunnel_w = 45.0;              // tunnel width along the sloped plate [mm]
-tunnel_roof_t = 8.0;           // inverted-U top bridge thickness [mm]
-use_blue_stop_hook = true;     // false restores the original full-height blue stop bars
-blue_stop_hook_h = 2.5;        // hook protrusion below the light-blue roof [mm]
-blue_rect_gap = tunnel_w;      // clearance before the stop along the plate [mm]
+tunnel_w = 45.0;              // retained light-blue reach from the original tunnel geometry [mm]
 blue_rect_start_y = side_stand_plate_y;
-blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
-blue_cutout_depth = 10.0;    // notch depth from stop-side end along the plate [mm]
-blue_cutout_h = 30.0;        // notch height along the stop direction [mm]
+blue_rect_end_y = stand_plate_y + stand_plate_t - 5.0 - tunnel_w * stand_plate_run / stand_plate_len;
+blue_cutout_depth = 10.0;    // notch depth from the light-blue end along the plate [mm]
+blue_cutout_h = 30.0;        // notch height along the light-blue end [mm]
 blue_cutout_offset = (stop_h - blue_cutout_h) / 2;
 blue_cutout_start_y = blue_rect_end_y - blue_cutout_depth * stand_plate_run / stand_plate_len;
+gray_tender_len = 18.0;      // gray hook body length along the plate [mm]
+gray_tender_t = stand_width + 5.0; // gray peg support extends 5 mm lower for stability [mm]
+gray_tender_anchor = 0.5;    // slight overlap keeps the tender joined to the light-blue body [mm]
+gray_tender_start_y = blue_rect_end_y - gray_tender_anchor * stand_plate_run / stand_plate_len;
+gray_tender_end_y = blue_rect_end_y + gray_tender_len * stand_plate_run / stand_plate_len;
+gray_tender_offset = stop_h - gray_tender_t;
+desired_peg_spacing = 135.0; // target center-to-center peg spacing [mm]
+gray_support_w = (panel_w - 2 * stand_inset + stand_width - desired_peg_spacing) / 2;
+gray_pin_d = 6.4;            // round pin sized to pass a 7 mm hole [mm]
+gray_pin_len = 3.2;          // straight pin length through the mating plate [mm]
+gray_pin_embed = 1.0;        // overlap keeps the pin manifold with the tender body [mm]
+gray_pin_top_margin = 1.0;   // keeps the peg close to the top of the support [mm]
+gray_pin_center_offset = gray_tender_offset + gray_tender_t - gray_pin_d / 2 - gray_pin_top_margin;
+gray_hook_base_d = 6.8;      // conical hook base wraps over the round pin [mm]
+gray_hook_tip_d = 5.0;       // tapered hook tip diameter [mm]
+gray_hook_reach = 5.0;       // tapered hook extends beyond the round pin [mm]
+gray_hook_rise = 5.0;        // tapered hook rises diagonally at about 45 degrees [mm]
+gray_hook_cap_len = 0.8;     // short caps used to hull the tapered hook [mm]
 
 $fn = 64;
 eps = 0.1;
@@ -179,16 +191,20 @@ module side_stand(x0) {
 }
 
 module stand_plate() {
+    top_end_y = blue_rect_end_y;
+    bottom_end_y = blue_rect_end_y - stand_plate_t;
+    end_z = stand_plate_top_z(top_end_y);
+
     polyhedron(
         points = [
             [0, stand_plate_low_y, -eps],
             [0, stand_plate_top_y0, -eps],
-            [0, stand_plate_y + stand_plate_t, panel_t + stand_plate_depth],
-            [0, stand_plate_y, panel_t + stand_plate_depth],
+            [0, top_end_y, end_z],
+            [0, bottom_end_y, end_z],
             [panel_w, stand_plate_low_y, -eps],
             [panel_w, stand_plate_top_y0, -eps],
-            [panel_w, stand_plate_y + stand_plate_t, panel_t + stand_plate_depth],
-            [panel_w, stand_plate_y, panel_t + stand_plate_depth]
+            [panel_w, top_end_y, end_z],
+            [panel_w, bottom_end_y, end_z]
         ],
         faces = [
             [0, 3, 2, 1],
@@ -203,57 +219,6 @@ module stand_plate() {
 
 function stand_plate_top_z(y) =
     (y - stand_plate_top_y0) * stand_plate_slope;
-
-module plate_stop_bar(x0) {
-    x1 = x0 + stand_width;
-    normal_y = stand_plate_rise / stand_plate_len;
-    normal_z = -stand_plate_run / stand_plate_len;
-    z0 = stand_plate_top_z(stop_y);
-    z1 = stand_plate_top_z(stop_y + stop_t);
-
-    if (use_blue_stop_hook)
-        polyhedron(
-            points = [
-                [x0, stop_y + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z0 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
-                [x0, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z1 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
-                [x0, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t), z1 + normal_z * (stop_h - tunnel_roof_t)],
-                [x0, stop_y + normal_y * (stop_h - tunnel_roof_t), z0 + normal_z * (stop_h - tunnel_roof_t)],
-                [x1, stop_y + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z0 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
-                [x1, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z1 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
-                [x1, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t), z1 + normal_z * (stop_h - tunnel_roof_t)],
-                [x1, stop_y + normal_y * (stop_h - tunnel_roof_t), z0 + normal_z * (stop_h - tunnel_roof_t)]
-            ],
-            faces = [
-                [0, 3, 2, 1],
-                [4, 5, 6, 7],
-                [0, 4, 7, 3],
-                [3, 7, 6, 2],
-                [2, 6, 5, 1],
-                [1, 5, 4, 0]
-            ]
-        );
-    else
-        polyhedron(
-            points = [
-                [x0, stop_y, z0],
-                [x0, stop_y + stop_t, z1],
-                [x0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-                [x0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
-                [x1, stop_y, z0],
-                [x1, stop_y + stop_t, z1],
-                [x1, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-                [x1, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
-            ],
-            faces = [
-                [0, 3, 2, 1],
-                [4, 5, 6, 7],
-                [0, 4, 7, 3],
-                [3, 7, 6, 2],
-                [2, 6, 5, 1],
-                [1, 5, 4, 0]
-            ]
-        );
-}
 
 module panel_inside_top_label() {
     color("white")
@@ -313,14 +278,39 @@ module blue_rectangle(x0) {
     }
 }
 
-module tunnel_roof(x0) {
-    x1 = x0 + stand_width;
+module gray_tender(x_outer, inward_dir) {
+    x0 = inward_dir > 0 ? x_outer : x_outer - gray_support_w;
+    x1 = inward_dir > 0 ? x_outer + gray_support_w : x_outer;
+    x_mid = inward_dir > 0 ? x1 - stand_width / 2 : x0 + stand_width / 2;
+    tangent_angle = -atan2(stand_plate_run, stand_plate_rise);
+    tender_end_z = stand_plate_top_z(gray_tender_end_y);
+    normal_y = stand_plate_rise / stand_plate_len;
+    normal_z = -stand_plate_run / stand_plate_len;
 
-    sloped_wall(
-        x0, x1,
-        blue_rect_end_y - eps, stop_y + stop_t + eps,
-        tunnel_roof_t + 2 * eps, stop_h - tunnel_roof_t - eps
-    );
+    union() {
+        sloped_wall(
+            x0, x1,
+            gray_tender_start_y, gray_tender_end_y,
+            gray_tender_t, gray_tender_offset
+        );
+        translate([
+            x_mid,
+            gray_tender_end_y + normal_y * gray_pin_center_offset,
+            tender_end_z + normal_z * gray_pin_center_offset
+        ])
+            rotate([tangent_angle, 0, 0])
+                union() {
+                    translate([0, 0, -gray_pin_embed])
+                        cylinder(d = gray_pin_d, h = gray_pin_len + gray_pin_embed);
+
+                    hull() {
+                        translate([0, 0, gray_pin_len - gray_hook_cap_len])
+                            cylinder(d = gray_hook_base_d, h = gray_hook_cap_len);
+                        translate([0, gray_hook_rise, gray_pin_len + gray_hook_reach - gray_hook_cap_len])
+                            cylinder(d = gray_hook_tip_d, h = gray_hook_cap_len);
+                    }
+                }
+    }
 }
 
 union() {
@@ -337,12 +327,10 @@ union() {
         color("lightblue") {
             blue_rectangle(stand_inset);
             blue_rectangle(panel_w - stand_inset - stand_width);
-            tunnel_roof(stand_inset);
-            tunnel_roof(panel_w - stand_inset - stand_width);
         }
-        color("blue") {
-            plate_stop_bar(stand_inset);
-            plate_stop_bar(panel_w - stand_inset - stand_width);
+        color("gray") {
+            gray_tender(stand_inset, 1);
+            gray_tender(panel_w - stand_inset, -1);
         }
 
         color("red") {
