@@ -8,8 +8,8 @@
 panel_w = 205.0;          // outer panel width [mm]
 show_full_holder = true;  // include stand, stop, and braces
 panel_h_uncropped = 265.0; // original full holder panel height [mm]
-panel_crop_top = 4.5;     // material removed from the yellow plate top edge [mm]
-panel_crop_bottom = 4.5;  // material removed from the yellow plate bottom edge [mm]
+panel_crop_top = 8.5;     // material removed from the yellow plate top edge [mm]
+panel_crop_bottom = 8.5;  // material removed from the yellow plate bottom edge [mm]
 panel_h_full = panel_h_uncropped - panel_crop_top - panel_crop_bottom;
 panel_h_plate_only = panel_h_full;
 panel_h = show_full_holder ? panel_h_full : panel_h_plate_only;
@@ -74,6 +74,8 @@ inside_label_depth = 1.0;       // raised text depth [mm]
 inside_label_font = "Liberation Serif:style=Bold";
 tunnel_w = 45.0;              // tunnel width along the sloped plate [mm]
 tunnel_roof_t = 8.0;           // inverted-U top bridge thickness [mm]
+use_blue_stop_hook = true;     // false restores the original full-height blue stop bars
+blue_stop_hook_h = 2.5;        // hook protrusion below the light-blue roof [mm]
 blue_rect_gap = tunnel_w;      // clearance before the stop along the plate [mm]
 blue_rect_start_y = side_stand_plate_y;
 blue_rect_end_y = stop_y - blue_rect_gap * stand_plate_run / stand_plate_len;
@@ -209,26 +211,48 @@ module plate_stop_bar(x0) {
     z0 = stand_plate_top_z(stop_y);
     z1 = stand_plate_top_z(stop_y + stop_t);
 
-    polyhedron(
-        points = [
-            [x0, stop_y, z0],
-            [x0, stop_y + stop_t, z1],
-            [x0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-            [x0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
-            [x1, stop_y, z0],
-            [x1, stop_y + stop_t, z1],
-            [x1, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
-            [x1, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
-        ],
-        faces = [
-            [0, 3, 2, 1],
-            [4, 5, 6, 7],
-            [0, 4, 7, 3],
-            [3, 7, 6, 2],
-            [2, 6, 5, 1],
-            [1, 5, 4, 0]
-        ]
-    );
+    if (use_blue_stop_hook)
+        polyhedron(
+            points = [
+                [x0, stop_y + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z0 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
+                [x0, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z1 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
+                [x0, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t), z1 + normal_z * (stop_h - tunnel_roof_t)],
+                [x0, stop_y + normal_y * (stop_h - tunnel_roof_t), z0 + normal_z * (stop_h - tunnel_roof_t)],
+                [x1, stop_y + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z0 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
+                [x1, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t - blue_stop_hook_h), z1 + normal_z * (stop_h - tunnel_roof_t - blue_stop_hook_h)],
+                [x1, stop_y + stop_t + normal_y * (stop_h - tunnel_roof_t), z1 + normal_z * (stop_h - tunnel_roof_t)],
+                [x1, stop_y + normal_y * (stop_h - tunnel_roof_t), z0 + normal_z * (stop_h - tunnel_roof_t)]
+            ],
+            faces = [
+                [0, 3, 2, 1],
+                [4, 5, 6, 7],
+                [0, 4, 7, 3],
+                [3, 7, 6, 2],
+                [2, 6, 5, 1],
+                [1, 5, 4, 0]
+            ]
+        );
+    else
+        polyhedron(
+            points = [
+                [x0, stop_y, z0],
+                [x0, stop_y + stop_t, z1],
+                [x0, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+                [x0, stop_y + normal_y * stop_h, z0 + normal_z * stop_h],
+                [x1, stop_y, z0],
+                [x1, stop_y + stop_t, z1],
+                [x1, stop_y + stop_t + normal_y * stop_h, z1 + normal_z * stop_h],
+                [x1, stop_y + normal_y * stop_h, z0 + normal_z * stop_h]
+            ],
+            faces = [
+                [0, 3, 2, 1],
+                [4, 5, 6, 7],
+                [0, 4, 7, 3],
+                [3, 7, 6, 2],
+                [2, 6, 5, 1],
+                [1, 5, 4, 0]
+            ]
+        );
 }
 
 module panel_inside_top_label() {
