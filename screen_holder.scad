@@ -5,10 +5,13 @@
 
 // ---------- Parameters ----------
 
-panel_w = 205.0;      // outer panel width [mm]
-show_full_holder = true; // include stand, stop, and braces
-panel_h_full = 265.0; // full holder panel height [mm]
-panel_h_plate_only = 256.0; // plate-only panel height [mm]
+panel_w = 205.0;          // outer panel width [mm]
+show_full_holder = true;  // include stand, stop, and braces
+panel_h_uncropped = 265.0; // original full holder panel height [mm]
+panel_crop_top = 4.5;     // material removed from the yellow plate top edge [mm]
+panel_crop_bottom = 4.5;  // material removed from the yellow plate bottom edge [mm]
+panel_h_full = panel_h_uncropped - panel_crop_top - panel_crop_bottom;
+panel_h_plate_only = panel_h_full;
 panel_h = show_full_holder ? panel_h_full : panel_h_plate_only;
 panel_t_full = 10.0;  // full holder panel thickness [mm]
 panel_t_plate_only = 0.6; // plate-only panel thickness [mm]
@@ -41,10 +44,10 @@ holder_holes = [
 ];
 
 screen_tilt_angle = 25.0;     // approximate backward screen tilt from vertical [deg]
-stand_side_angle = 90.0 - 22.5; // reduced from a 90 degree right-triangle stand [deg]
+stand_side_angle = 90.0 - screen_tilt_angle; // reduced from a 90 degree right-triangle stand [deg]
 stand_width = 8.0;            // width of each side stand [mm]
-stand_inset = 1.0;            // stand inset from left/right panel edges [mm]
-stand_attach_h = panel_h * 0.75; // vertical height attached to panel back [mm]
+stand_inset = 0.0;            // stand inset from left/right panel edges [mm]
+stand_attach_h = panel_h * 0.9; // vertical height attached to panel back [mm]
 stand_depth = stand_attach_h * tan(screen_tilt_angle);
 stand_foot_y = stand_depth / tan(stand_side_angle);
 stand_plate_depth = 150.0;    // solid angled plate extension out from panel back [mm]
@@ -64,10 +67,11 @@ tunnel_h = 150.0;             // clear tunnel height target [mm]
 stop_h = tunnel_h;             // stop height upward from the plate [mm]
 stop_t = 5.0;                 // stop thickness along the plate [mm]
 stop_y = stand_plate_y + stand_plate_t - stop_t;
-stop_label_text = "II";       // back-of-stop roman numeral
-stop_label_size = stop_h * 0.3; // text height, about 30% of stop height [mm]
-stop_label_depth = 1.0;       // raised text depth [mm]
-stop_label_font = "Liberation Serif:style=Bold";
+inside_label_text = "III";      // roman numeral on the inside of the yellow plate
+inside_label_y = 20.0;          // label center from top edge of the yellow plate [mm]
+inside_label_size = 20.0;       // text height [mm]
+inside_label_depth = 1.0;       // raised text depth [mm]
+inside_label_font = "Liberation Serif:style=Bold";
 tunnel_w = 45.0;              // tunnel width along the sloped plate [mm]
 tunnel_roof_t = 8.0;           // inverted-U top bridge thickness [mm]
 blue_rect_gap = tunnel_w;      // clearance before the stop along the plate [mm]
@@ -83,8 +87,9 @@ eps = 0.1;
 
 // ---------- Coordinate helpers ----------
 
-function y_from_top(y) = panel_h - y;
-function rect_y_from_top(y, h) = panel_h - y - h;
+function cropped_y_from_top(y) = y - panel_crop_top;
+function y_from_top(y) = panel_h - cropped_y_from_top(y);
+function rect_y_from_top(y, h) = panel_h - cropped_y_from_top(y) - h;
 function mirrored_x(x) = panel_w - x;
 function mirrored_rect_x(x, w) = panel_w - x - w;
 function hole_label(h) = h[0];
@@ -226,28 +231,21 @@ module plate_stop_bar(x0) {
     );
 }
 
-module stop_back_label() {
-    normal_y = stand_plate_rise / stand_plate_len;
-    normal_z = -stand_plate_run / stand_plate_len;
-    z1 = stand_plate_top_z(stop_y + stop_t);
-    label_angle = atan2(normal_z, normal_y);
-
+module panel_inside_top_label() {
     color("white")
         translate([
             panel_w / 2,
-            stop_y + stop_t + normal_y * stop_h / 2,
-            z1 + normal_z * stop_h / 2
+            y_from_top(inside_label_y),
+            panel_t - eps
         ])
-            rotate([label_angle, 0, 0])
-                translate([0, 0, -eps])
-                    linear_extrude(height = stop_label_depth + eps)
-                        text(
-                            stop_label_text,
-                            size = stop_label_size,
-                            font = stop_label_font,
-                            halign = "center",
-                            valign = "center"
-                        );
+            linear_extrude(height = inside_label_depth + eps)
+                text(
+                    inside_label_text,
+                    size = inside_label_size,
+                    font = inside_label_font,
+                    halign = "center",
+                    valign = "center"
+                );
 }
 
 module sloped_wall(x0, x1, y0, y1, h, base_offset = 0) {
@@ -307,6 +305,7 @@ union() {
 
     if (show_labels)
         holder_labels();
+    panel_inside_top_label();
 
     if (show_full_holder) {
         color("green")
